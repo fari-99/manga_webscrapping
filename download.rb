@@ -9,7 +9,7 @@ def gotoURL(timeout, tries)
 	    tries -= 1
 	    retry
 	  else
-	    puts "ERROR: Not responding after 10 tries!  Giving up!"
+	    puts "ERROR: Not responding after #{tries} tries!  Giving up!"
 	    exit
 	  end
 	end
@@ -22,13 +22,13 @@ def downloadImage(doc, fileLoc, counter)
 		if id == "image"
 			imageSrc = doc.at_css("//section[@id='viewer']//a img:nth-child(2)")["src"]
 		else
-			puts "image not loaded trying to refresh page"
+			puts "--- image not loaded trying to refresh page"
 			exit
 		end
 	elsif id == "image"
 			imageSrc = doc.at_css("//section[@id='viewer']//a img")["src"]
 	else
-			puts "image not loaded trying to refresh page"
+			puts "--- image not loaded trying to refresh page"
 			exit
 	end
 	require 'open-uri'
@@ -36,37 +36,57 @@ def downloadImage(doc, fileLoc, counter)
 	IO.copy_stream(download, "#{fileLoc}#{counter}.jpg")
 end
 
-browser = Watir::Browser.new :phantomjs
-timeout = 120
-tries = 10
-gotoURL(timeout, tries){
-	puts "go to chapter url"
-	browser.goto("http://www.mangahere.co/manga/douluo_dalu/c176/")
-}
+def downloadChapter(browser, judul, chapter, urlChapter)
+	timeout = 120
+	tries = 10
 
-#check berapa image 1 chapter
-doc = Nokogiri::HTML.parse(browser.html)
-puts "image count"
-countPage = doc.css("//span[@class='right']//select//option").count / 2
-
-puts "----------------- image download ------------------"
-$i = 1
-$num = countPage
-until $i > $num do 
-	getURLPage = doc.at_css("//span[@class='right']//select//option:nth-child(#{$i})")['value']
+	puts "--------------------------------------------------------------------"
+	puts "--------------------- try connect to chapter -----------------------"
+	puts "--------------------------------------------------------------------"
 	gotoURL(timeout, tries){
-		puts "go to image page #{$i}"
-		browser.goto(getURLPage)
+		browser.goto(urlChapter)
 	}
 
+	#check berapa image 1 chapter
 	doc = Nokogiri::HTML.parse(browser.html)
-	downloadImage(doc, "downloadedImage/", $i)
-	$i += 1
+	puts "image count"
+	countPage = doc.css("//span[@class='right']//select//option").count / 2
+
+	puts "--------------------------------------------------------------------"
+	puts "------------------------- downloading image ------------------------"
+	puts "--------------------------------------------------------------------"
+	$i = 1
+	$num = countPage
+	until $i > $num do 
+		getURLPage = doc.at_css("//span[@class='right']//select//option:nth-child(#{$i})")['value']
+		puts "download image #{$i}"
+		gotoURL(timeout, tries){
+			browser.goto(getURLPage)
+		}
+
+		doc = Nokogiri::HTML.parse(browser.html)
+		downloadImage(doc, "downloadedImage/", $i)
+		$i += 1
+	end
 end
 
+browser = Watir::Browser.new :phantomjs
 
-# filename = 'chapter.txt'
-# File.foreach(filename).with_index do |url, line_num|
-#  	# puts "#{line_num}: #{line}"
+
+filename = 'chapter.txt'
+File.foreach(filename).with_index do |url, line_num|
  	
-# end
+ 	if line_num == 1
+ 		judul = line
+ 	else
+ 		puts "--------------------------------------------------------------------"
+	 	puts "------------------- downloading chapter #{url} ---------------------"
+	 	puts "--------------------------------------------------------------------"
+
+	 	downloadChapter(browser, judul, line_num, line)
+
+		puts "--------------------------------------------------------------------"
+	 	puts "------------------------ end chapter #{url} ------------------------"
+	 	puts "--------------------------------------------------------------------"
+	end
+end
