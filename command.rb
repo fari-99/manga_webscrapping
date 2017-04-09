@@ -9,51 +9,63 @@ def gotoURL(timeout, tries)
 	    tries -= 1
 	    retry
 	  else
-	    puts "ERROR: Not responding after 10 tries!  Giving up!"
+	    puts "ERROR: Not responding after #{tries} tries!  Giving up!"
 	    exit
 	  end
 	end
 end
 
-$stdout = File.new("output.txt", 'w')
 $chapters = File.new("chapter.txt", 'w')
-
 $chapters.sync = true
-$stdout.sync = true
 
-# puts "downloading image"
-# require 'open-uri'
-# download = open('http://h.mhcdn.net/store/manga/14767/176.0/compressed/c000.jpg?token=968f6621aa3f06b362b4d61c5e8178a7&ttl=1491469200')
-# IO.copy_stream(download, 'image.png')
+puts "--------------------------------------------------------------------"
+puts "----------------------- Inisialisasi Browse ------------------------"
+puts "--------------------------------------------------------------------"
 
-puts "inisialisasi browser"
 browser = Watir::Browser.new :phantomjs
 rootURL = 'www.mangahere.co/manga/douluo_dalu'
 gotoURL(120,3){
-	puts "go to url"
 	browser.goto(rootURL)
 }
 
-puts "parsing halaman"
+puts "--------------------------------------------------------------------"
+puts "------------------------- Parsing Halaman --------------------------"
+puts "--------------------------------------------------------------------"
 doc = Nokogiri::HTML.parse(browser.html)
-totalChapter = doc.css('.detail_list//li//a').count
-print "total chapter = "
-puts totalChapter
+#totalChapter = doc.css('.detail_list//li//a').count
+judul = doc.at_css("//h1[@class='title']").text
 
-puts "saving url chapter"
+puts "--------------------------------------------------------------------"
+puts "------------------------ Saving Chapter URL ------------------------"
+puts "--------------------------------------------------------------------"
+
+#creating hash
+# hash_for_json = Hash.new
+# hash_for_json['key'] = value
+
+#creating array
+# arr_for_json = Array.new
+# arr_for_json.push ['key', 'value']
+
+# hash or array -> json
+# require 'json'
+# hash_for_json.to_json
+# arr_for_json.to_json
+
+# pretty json
+# puts JSON.pretty_generate(hash_for_json)
+# puts JSON.pretty_generate(arr_for_json)
+
 $i = 1
-$num = totalChapter
-chapterURL = Array.new
+$num = doc.css('.detail_list//li//a').count
+chapterURL = Hash.new
 until $i > $num  do
-	imageURL = doc.at_css(".detail_list//li:nth-child(#$i)//a")['href']
-	$chapters.puts imageURL
+	imageURL = doc.at_css(".detail_list//li:nth-child(#{$i})//a")['href']
+	chapterURL.putc imageURL
 	# str = doc.at_css(".detail_list//li:nth-child(#{$i})//a").text
 	# str = str.gsub(/\s+/m, ' ').gsub(/^\s+|\s+$/m, '').split(" ")
-	# chapterName = str.join(' ')
-	# chapter = [imageURL, chapterName]
-	# chapter = chapter.join(' ')
-	# $chapters.puts chapter
 	$i +=1;
 end
 
 browser.quit
+exit
